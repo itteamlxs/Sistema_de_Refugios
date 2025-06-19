@@ -23,6 +23,11 @@ class SearchController {
 
         $results = [];
         $error = null;
+        $isSearch = false;
+        $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+        $limit = 30;
+        $totalPages = 0;
+        $totalPeople = 0;
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
@@ -33,24 +38,42 @@ class SearchController {
                     $error = 'El nombre debe tener al menos 2 caracteres.';
                 } else {
                     $results = $this->searchModel->searchPeople($name);
+                    $isSearch = true;
                 }
             }
+        } else {
+            // Mostrar todas las personas con paginación
+            $totalPeople = $this->searchModel->getTotalPeopleCount();
+            $totalPages = ceil($totalPeople / $limit);
+            $results = $this->searchModel->getAllPeople($page, $limit);
         }
 
-        return ['results' => $results, 'error' => $error];
+        return [
+            'results' => $results, 
+            'error' => $error, 
+            'isSearch' => $isSearch,
+            'page' => $page,
+            'totalPages' => $totalPages,
+            'totalPeople' => $totalPeople,
+            'limit' => $limit
+        ];
     }
 
     public function publicSearch() {
         $results = [];
         $error = null;
         $refuge_name = null;
+        $isFilter = false;
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $name = filter_var($_POST['name'], FILTER_SANITIZE_STRING);
-            if (strlen($name) < 2) {
-                $error = 'El nombre debe tener al menos 2 caracteres.';
+            if (strlen($name) < 1) {
+                // Si está vacío, mostrar lista inicial
+                $results = $this->searchModel->getAllPeopleForPublic(50);
             } else {
-                $results = $this->searchModel->searchPeople($name);
+                // Usar filtro progresivo
+                $results = $this->searchModel->filterPeopleByPrefix($name);
+                $isFilter = true;
             }
         } elseif (isset($_GET['refuge_id'])) {
             $refuge_id = filter_var($_GET['refuge_id'], FILTER_SANITIZE_NUMBER_INT);
@@ -64,9 +87,53 @@ class SearchController {
             } else {
                 $error = 'ID de refugio inválido.';
             }
+        } else {
+            // Mostrar lista inicial al cargar la página
+            $results = $this->searchModel->getAllPeopleForPublic(50);
         }
 
-        return ['results' => $results, 'error' => $error, 'refuge_name' => $refuge_name];
+        return [
+            'results' => $results, 
+            'error' => $error, 
+            'refuge_name' => $refuge_name,
+            'isFilter' => $isFilter
+        ];
+    }
+
+    public function publicFilter() {
+        header('Content-Type: application/json');
+        $response = ['results' => [], 'error' => null];
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $response['error'] = 'Método no permitido.';
+            echo json_encode($response);
+            exit;
+        }
+
+        $input = json_decode(file_get_contents('php://input'), true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            $response['error'] = 'Formato JSON inválido.';
+            echo json_encode($response);
+            exit;
+        }
+
+        $name = filter_var($input['name'] ?? '', FILTER_SANITIZE_STRING);
+        
+        try {
+            if (strlen($name) < 1) {
+                // Si está vacío, mostrar lista inicial
+                $response['results'] = $this->searchModel->getAllPeopleForPublic(50);
+            } else {
+                // Filtro progresivo
+                $response['results'] = $this->searchModel->filterPeopleByPrefix($name);
+            }
+        } catch (Exception $e) {
+            $response['error'] = 'Error en la base de datos.';
+            http_response_code(500);
+        }
+
+        echo json_encode($response);
+        exit;
     }
 
     public function publicSuggest() {
@@ -87,8 +154,7 @@ class SearchController {
         }
 
         $name = filter_var($input['name'] ?? '', FILTER_SANITIZE_STRING);
-        if (strlen($name) < 2) {
-            $response['error'] = 'El nombre debe tener al menos 2 caracteres.';
+        if (strlen($name) < 1) {
             echo json_encode($response);
             exit;
         }
@@ -220,6 +286,9 @@ class SearchController {
 if (isset($_GET['action'])) {
     $controller = new SearchController();
     switch ($_GET['action']) {
+        case 'filter':
+            $controller->publicFilter();
+            break;
         case 'suggest':
             $controller->publicSuggest();
             break;

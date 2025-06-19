@@ -45,28 +45,40 @@
                 openIndex: null,
                 faqs: [
                     {
-                        question: '¿Cómo puedo buscar a una persona albergada?',
-                        answer: 'En la sección "Buscar Personas Albergadas", ingrese el nombre de la persona y presione "Buscar". También puede explorar refugios específicos haciendo clic en sus nombres.'
+                        question: '¿Cómo funciona el nuevo sistema de filtro?',
+                        answer: 'El sistema utiliza un filtro progresivo inteligente. Solo escribe las primeras letras del nombre y verás únicamente las personas cuyos nombres empiecen con esas letras. Por ejemplo, si escribes "Mar" verás "María", "Marco", "Margarita", etc. Los resultados se actualizan automáticamente mientras escribes.'
                     },
                     {
-                        question: '¿Qué información aparece en los resultados de búsqueda?',
-                        answer: 'Los resultados muestran el nombre, estatus, fecha y hora de ingreso, nombre del refugio, y ubicación de las personas albergadas.'
+                        question: '¿Qué diferencia hay entre filtrar y buscar?',
+                        answer: 'El filtro muestra solo nombres que EMPIECEN con las letras que escribas, mientras que una búsqueda tradicional mostraría cualquier nombre que CONTENGA esas letras en cualquier parte. Nuestro sistema es más preciso y rápido para encontrar personas específicas.'
                     },
                     {
-                        question: '¿Cómo descargo la lista de un refugio?',
-                        answer: 'En la sección "Explorar Refugios", haga clic en los botones "CSV" o "PDF" junto al refugio para descargar la lista de personas albergadas en el formato deseado.'
+                        question: '¿Qué información aparece en los resultados?',
+                        answer: 'Los resultados muestran el nombre completo, estatus actual (Albergado, Pendiente, En tránsito, Dado de alta), fecha y hora de ingreso, nombre del refugio donde se encuentra, y la ubicación del refugio.'
+                    },
+                    {
+                        question: '¿Cómo descargo la lista completa de un refugio?',
+                        answer: 'En la sección "Explorar Refugios", encontrarás cada refugio listado con botones "CSV" y "PDF". Haz clic en el formato que prefieras para descargar la lista completa de personas albergadas en ese refugio específico.'
+                    },
+                    {
+                        question: '¿Puedo ver todas las personas sin filtrar?',
+                        answer: 'Sí, cuando cargas la página verás automáticamente las personas albergadas más recientes. Si has aplicado un filtro, puedes hacer clic en la "X" del campo de búsqueda para limpiar el filtro y ver la lista completa nuevamente.'
+                    },
+                    {
+                        question: '¿Qué significan los diferentes colores de estatus?',
+                        answer: 'Los estatus tienen colores distintivos: Verde para "Albergado" (persona actualmente en el refugio), Amarillo para "Pendiente" (en proceso), Azul para "En tránsito" (moviéndose entre refugios), y Gris para "Dado de alta" (ya no está en el refugio).'
                     },
                     {
                         question: '¿Cómo registro un nuevo refugio?',
-                        answer: 'Los administradores pueden registrar refugios iniciando sesión y subiendo un archivo CSV con los datos en la sección de administración. Los refugios deben ser aprobados antes de aparecer públicamente.'
+                        answer: 'Los administradores pueden registrar refugios iniciando sesión y subiendo un archivo CSV con los datos en la sección de administración. Los refugios deben ser aprobados antes de aparecer públicamente en el sistema.'
                     },
                     {
                         question: '¿Es segura mi información en el sistema?',
-                        answer: 'Sí, utilizamos medidas de seguridad avanzadas, como validación CSRF y sanitización de datos, para proteger la información de los usuarios.'
+                        answer: 'Sí, utilizamos medidas de seguridad avanzadas, como validación CSRF, sanitización de datos y control de acceso por roles para proteger toda la información del sistema.'
                     },
                     {
                         question: '¿Qué hago si no encuentro a la persona que busco?',
-                        answer: 'Verifique que el nombre esté escrito correctamente o intente con variaciones. Si no aparece, es posible que la persona no esté registrada en un refugio aprobado.'
+                        answer: 'Verifica que estés escribiendo las primeras letras del nombre correctamente. Recuerda que el sistema filtra por el INICIO del nombre. Si aún no aparece, es posible que la persona no esté registrada en un refugio aprobado o que esté registrada con un nombre diferente.'
                     }
                 ]
             }));

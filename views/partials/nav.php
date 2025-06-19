@@ -5,7 +5,11 @@ $role = isset($_SESSION['role']) ? $_SESSION['role'] : null;
     <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
         <a href="/ads/views/index.php" class="text-xl font-bold">Sistema de Refugios</a>
         <div class="space-x-4">
-            <a href="/ads/views/index.php#search" class="hover:underline">Búsqueda</a>
+            <?php if ($role): ?>
+                <a href="/ads/views/search.php" class="hover:underline">Búsqueda</a>
+            <?php else: ?>
+                <a href="/ads/views/index.php#search" class="hover:underline">Búsqueda</a>
+            <?php endif; ?>
             <?php if ($role === 'admin'): ?>
                 <a href="/ads/views/admin_dashboard.php" class="hover:underline">Dashboard</a>
             <?php elseif ($role === 'refuge_user'): ?>
