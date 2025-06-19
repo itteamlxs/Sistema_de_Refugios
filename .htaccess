@@ -1,0 +1,224 @@
+# =================================================================
+# Sistema de Refugios v1.3.0 - Configuración de Seguridad Apache
+# =================================================================
+
+# Habilitar el motor de reescritura
+RewriteEngine On
+
+# =================================================================
+# SEGURIDAD - PROTECCIÓN DE ARCHIVOS SENSIBLES
+# =================================================================
+
+# Denegar acceso a archivos de configuración
+<FilesMatch "\.(env|json|lock|md|txt|log|bak|backup|old|orig|tmp)$">
+    Require all denied
+</FilesMatch>
+
+# Proteger archivos composer
+<Files "composer.json">
+    Require all denied
+</Files>
+<Files "composer.lock">
+    Require all denied
+</Files>
+
+# Proteger archivo .env
+<Files ".env">
+    Require all denied
+</Files>
+
+# Denegar acceso a directorios sensibles
+RedirectMatch 403 ^/ads/config/.*$
+RedirectMatch 403 ^/ads/vendor/.*$
+RedirectMatch 403 ^/ads/\.git.*$
+
+# Proteger archivos de backup y temporales
+<FilesMatch "(^#.*#|\.(bak|config|dist|fla|inc|ini|log|psd|sh|sql|sw[op])|~)$">
+    Require all denied
+</FilesMatch>
+
+# =================================================================
+# CONFIGURACIÓN DE UPLOADS
+# =================================================================
+
+# Permitir solo archivos CSV en el directorio uploads
+<IfModule mod_rewrite.c>
+    # Bloquear ejecución de PHP en uploads
+    RewriteCond %{REQUEST_URI} ^/ads/uploads/
+    RewriteCond %{REQUEST_URI} \.(php|php3|php4|php5|phtml|pl|py|jsp|asp|sh|cgi)$ [NC]
+    RewriteRule .* - [F,L]
+</IfModule>
+
+# Configuración específica para directorio uploads
+<Directory "/ads/uploads">
+    # Denegar ejecución de scripts
+    Options -ExecCGI -Indexes
+    RemoveHandler .php .phtml .php3 .php4 .php5
+    RemoveType .php .phtml .php3 .php4 .php5
+    
+    # Solo permitir descarga de archivos CSV
+    <FilesMatch "\.csv$">
+        Require all granted
+    </FilesMatch>
+    
+    # Denegar todo lo demás
+    <FilesMatch "\.">
+        Require all denied
+    </FilesMatch>
+</Directory>
+
+# =================================================================
+# HEADERS DE SEGURIDAD
+# =================================================================
+
+<IfModule mod_headers.c>
+    # Prevenir clickjacking
+    Header always append X-Frame-Options DENY
+    
+    # Prevenir MIME type sniffing
+    Header always set X-Content-Type-Options nosniff
+    
+    # Habilitar protección XSS del navegador
+    Header always set X-XSS-Protection "1; mode=block"
+    
+    # Política de referrer estricta
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    
+    # Content Security Policy básico
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https:; font-src 'self' https://cdn.jsdelivr.net; connect-src 'self' https://nominatim.openstreetmap.org;"
+    
+    # Eliminar headers que revelan información del servidor
+    Header always unset X-Powered-By
+    Header always unset Server
+</IfModule>
+
+# =================================================================
+# FORZAR HTTPS EN PRODUCCIÓN (comentado para desarrollo)
+# =================================================================
+
+# Descomenta las siguientes líneas para forzar HTTPS en producción
+# <IfModule mod_rewrite.c>
+#     RewriteCond %{HTTPS} off
+#     RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+# </IfModule>
+
+# =================================================================
+# CONFIGURACIÓN DE ERRORES PERSONALIZADOS
+# =================================================================
+
+# Páginas de error personalizadas
+ErrorDocument 403 /ads/views/errors/403.html
+ErrorDocument 404 /ads/views/errors/404.html
+ErrorDocument 500 /ads/views/errors/500.html
+
+# =================================================================
+# OPTIMIZACIÓN DE RENDIMIENTO
+# =================================================================
+
+# Habilitar compresión GZIP
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/plain
+    AddOutputFilterByType DEFLATE text/html
+    AddOutputFilterByType DEFLATE text/xml
+    AddOutputFilterByType DEFLATE text/css
+    AddOutputFilterByType DEFLATE application/xml
+    AddOutputFilterByType DEFLATE application/xhtml+xml
+    AddOutputFilterByType DEFLATE application/rss+xml
+    AddOutputFilterByType DEFLATE application/javascript
+    AddOutputFilterByType DEFLATE application/x-javascript
+</IfModule>
+
+# Cache para archivos estáticos
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css "access plus 1 month"
+    ExpiresByType application/javascript "access plus 1 month"
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType image/jpg "access plus 1 year"
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/gif "access plus 1 year"
+    ExpiresByType image/svg+xml "access plus 1 year"
+</IfModule>
+
+# =================================================================
+# CONFIGURACIÓN DE LÍMITES
+# =================================================================
+
+# Límites de tamaño de archivo (para uploads)
+<IfModule mod_php.c>
+    php_value upload_max_filesize 2M
+    php_value post_max_size 2M
+    php_value max_execution_time 30
+    php_value max_input_time 30
+</IfModule>
+
+# =================================================================
+# PROTECCIÓN CONTRA ATAQUES COMUNES
+# =================================================================
+
+# Bloquear User Agents maliciosos
+<IfModule mod_rewrite.c>
+    RewriteCond %{HTTP_USER_AGENT} ^$ [OR]
+    RewriteCond %{HTTP_USER_AGENT} (binlar|casper|cmsworldmap|comodo|diavol|dotbot|feedfinder|flicky|ia_archiver|jakarta|kmccrew|nutch|planetwork|purebot|pycurl|skygrid|sucker|turnit|vikspider|winhttp|xxxyy|youda|zmeu|zune) [NC]
+    RewriteRule .* - [F,L]
+</IfModule>
+
+# Bloquear intentos de acceso a archivos de administración de WordPress/otros CMS
+<IfModule mod_rewrite.c>
+    RewriteCond %{REQUEST_URI} (wp-admin|wp-login|wp-config|xmlrpc) [NC]
+    RewriteRule .* - [F,L]
+</IfModule>
+
+# Prevenir inyección de código en URLs
+<IfModule mod_rewrite.c>
+    RewriteCond %{QUERY_STRING} (\<|%3C).*script.*(\>|%3E) [NC,OR]
+    RewriteCond %{QUERY_STRING} GLOBALS(=|\[|\%[0-9A-Z]{0,2}) [OR]
+    RewriteCond %{QUERY_STRING} _REQUEST(=|\[|\%[0-9A-Z]{0,2}) [OR]
+    RewriteCond %{QUERY_STRING} ^.*(\[|\]|\(|\)|<|>|ê|"|;|\?|\*|=$).* [NC,OR]
+    RewriteCond %{QUERY_STRING} ^.*("|'|<|>|\|{|}).* [NC,OR]
+    RewriteCond %{QUERY_STRING} ^.*(%24&x).* [NC,OR]
+    RewriteCond %{QUERY_STRING} ^.*(%0|%A|%B|%C|%D|%E|%F|127\.0).* [NC,OR]
+    RewriteCond %{QUERY_STRING} ^.*(globals|encode|localhost|loopback).* [NC,OR]
+    RewriteCond %{QUERY_STRING} ^.*(request|select|concat|union|declare).* [NC]
+    RewriteRule .* - [F,L]
+</IfModule>
+
+# =================================================================
+# CONFIGURACIÓN ESPECÍFICA DEL SISTEMA DE REFUGIOS
+# =================================================================
+
+# Redirección principal - si acceden solo a /ads/, redirigir al index.php
+<IfModule mod_rewrite.c>
+    RewriteCond %{REQUEST_URI} ^/ads/?$
+    RewriteRule ^/?$ /ads/index.php [L,R=301]
+</IfModule>
+
+# Permitir acceso a las vistas públicas
+<Directory "/ads/views">
+    Options -Indexes
+    AllowOverride None
+    Require all granted
+</Directory>
+
+# Permitir acceso a controladores (solo para AJAX/API)
+<Directory "/ads/controllers">
+    Options -Indexes
+    AllowOverride None
+    Require all granted
+</Directory>
+
+# Permitir acceso a archivos CSS/JS de librerías
+<Directory "/ads/lib">
+    Options -Indexes
+    AllowOverride None
+    Require all granted
+</Directory>
+
+# =================================================================
+# LOGS DE SEGURIDAD (opcional)
+# =================================================================
+
+# Si quieres habilitar logs de seguridad, descomenta:
+# LogLevel warn
+# ErrorLog /var/log/apache2/ads_error.log
+# CustomLog /var/log/apache2/ads_access.log combined
