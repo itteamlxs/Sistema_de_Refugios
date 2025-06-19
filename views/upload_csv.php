@@ -139,12 +139,27 @@ if (isset($_GET['action']) && $_GET['action'] === 'download_template') {
                                    placeholder="Ej: Centro Comunitario Las Flores"
                                    class="w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
                         </div>
-                        <div>
-                            <label for="location" class="block text-sm font-medium text-gray-700 mb-2">Ubicación</label>
-                            <input type="text" name="location" id="location" required
-                                   placeholder="Ej: Colonia Centro, Ciudad"
-                                   class="w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                    <div>
+                        <label for="location" class="block text-sm font-medium text-gray-700 mb-2">Ubicación del Refugio</label>
+                        <div class="space-y-2">
+                            <div class="flex space-x-2">
+                                <input type="text" name="location" id="location" required
+                                       placeholder="Ej: Colonia Centro, Ciudad"
+                                       class="flex-1 p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                                <button type="button" id="getLocationBtn" 
+                                        class="px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition duration-200 flex items-center">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    </svg>
+                                    GPS
+                                </button>
+                            </div>
+                            <div id="locationStatus" class="text-sm text-gray-500 hidden"></div>
+                            <div id="coordinatesInfo" class="text-xs text-gray-400 hidden"></div>
+                            <p class="text-sm text-gray-500">💡 Usa el botón GPS para obtener automáticamente tu ubicación actual</p>
                         </div>
+                    </div>
                     </div>
                     
                     <div>
@@ -174,6 +189,10 @@ if (isset($_GET['action']) && $_GET['action'] === 'download_template') {
                         </li>
                         <li class="flex items-start">
                             <span class="text-blue-500 mr-2">•</span>
+                            Use el botón GPS para obtener automáticamente la ubicación exacta de su refugio.
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-blue-500 mr-2">•</span>
                             El archivo no debe exceder 2MB de tamaño.
                         </li>
                         <li class="flex items-start">
@@ -185,5 +204,150 @@ if (isset($_GET['action']) && $_GET['action'] === 'download_template') {
             </div>
         </div>
     </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const getLocationBtn = document.getElementById('getLocationBtn');
+            const locationInput = document.getElementById('location');
+            const locationStatus = document.getElementById('locationStatus');
+            const coordinatesInfo = document.getElementById('coordinatesInfo');
+
+            getLocationBtn.addEventListener('click', function() {
+                if (!navigator.geolocation) {
+                    showStatus('Tu navegador no soporta geolocalización', 'error');
+                    return;
+                }
+
+                // Cambiar estado del botón
+                getLocationBtn.disabled = true;
+                getLocationBtn.innerHTML = `
+                    <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Obteniendo...
+                `;
+
+                showStatus('Obteniendo tu ubicación...', 'loading');
+
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        
+                        // Mostrar coordenadas
+                        coordinatesInfo.textContent = `Coordenadas: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+                        coordinatesInfo.classList.remove('hidden');
+
+                        // Obtener dirección usando geocodificación reversa
+                        reverseGeocode(lat, lng);
+                    },
+                    function(error) {
+                        let errorMessage = 'Error al obtener ubicación: ';
+                        switch(error.code) {
+                            case error.PERMISSION_DENIED:
+                                errorMessage += 'Permiso denegado. Permite el acceso a la ubicación.';
+                                break;
+                            case error.POSITION_UNAVAILABLE:
+                                errorMessage += 'Ubicación no disponible.';
+                                break;
+                            case error.TIMEOUT:
+                                errorMessage += 'Tiempo de espera agotado.';
+                                break;
+                            default:
+                                errorMessage += 'Error desconocido.';
+                                break;
+                        }
+                        showStatus(errorMessage, 'error');
+                        resetButton();
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 300000
+                    }
+                );
+            });
+
+            function reverseGeocode(lat, lng) {
+                showStatus('Obteniendo dirección...', 'loading');
+
+                // Usar Nominatim (OpenStreetMap) para geocodificación reversa
+                const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=es`;
+                
+                fetch(url)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data && data.display_name) {
+                            // Formatear la dirección de manera más legible
+                            let address = data.display_name;
+                            
+                            // Intentar extraer componentes más relevantes
+                            if (data.address) {
+                                const parts = [];
+                                if (data.address.road) parts.push(data.address.road);
+                                if (data.address.neighbourhood) parts.push(data.address.neighbourhood);
+                                if (data.address.suburb) parts.push(data.address.suburb);
+                                if (data.address.city || data.address.town || data.address.village) {
+                                    parts.push(data.address.city || data.address.town || data.address.village);
+                                }
+                                if (data.address.state) parts.push(data.address.state);
+                                
+                                if (parts.length > 0) {
+                                    address = parts.join(', ');
+                                }
+                            }
+
+                            locationInput.value = address;
+                            showStatus('✓ Ubicación obtenida correctamente', 'success');
+                        } else {
+                            showStatus('No se pudo obtener la dirección', 'error');
+                        }
+                        resetButton();
+                    })
+                    .catch(error => {
+                        console.error('Error en geocodificación:', error);
+                        showStatus('Error al obtener la dirección. Intenta escribirla manualmente.', 'error');
+                        resetButton();
+                    });
+            }
+
+            function showStatus(message, type) {
+                locationStatus.textContent = message;
+                locationStatus.classList.remove('hidden', 'text-blue-600', 'text-green-600', 'text-red-600');
+                
+                switch(type) {
+                    case 'loading':
+                        locationStatus.classList.add('text-blue-600');
+                        break;
+                    case 'success':
+                        locationStatus.classList.add('text-green-600');
+                        break;
+                    case 'error':
+                        locationStatus.classList.add('text-red-600');
+                        break;
+                }
+                locationStatus.classList.remove('hidden');
+
+                // Ocultar mensaje de éxito después de 3 segundos
+                if (type === 'success') {
+                    setTimeout(() => {
+                        locationStatus.classList.add('hidden');
+                    }, 3000);
+                }
+            }
+
+            function resetButton() {
+                getLocationBtn.disabled = false;
+                getLocationBtn.innerHTML = `
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                    GPS
+                `;
+            }
+        });
+    </script>
 </body>
 </html>

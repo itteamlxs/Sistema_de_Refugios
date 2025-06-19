@@ -10,6 +10,7 @@ $role = isset($_SESSION['role']) ? $_SESSION['role'] : null;
             <?php else: ?>
                 <a href="/ads/views/index.php#search" class="hover:underline">Búsqueda</a>
             <?php endif; ?>
+            <a href="/ads/views/refugios.php" class="hover:underline">Refugios</a>
             <?php if ($role === 'admin'): ?>
                 <a href="/ads/views/admin_dashboard.php" class="hover:underline">Dashboard</a>
             <?php elseif ($role === 'refuge_user'): ?>
