@@ -4,6 +4,7 @@ $role = isset($_SESSION['role']) ? $_SESSION['role'] : null;
 <nav class="bg-blue-600 text-white shadow-lg">
     <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
         <a href="/ads/views/index.php" class="text-xl font-bold">Sistema de Refugios</a>
+        
         <div class="space-x-4">
             <?php if ($role): ?>
                 <a href="/ads/views/search.php" class="hover:underline">Búsqueda</a>
@@ -21,6 +22,7 @@ $role = isset($_SESSION['role']) ? $_SESSION['role'] : null;
             <?php else: ?>
                 <a href="/ads/views/login.php" class="hover:underline">Iniciar Sesión</a>
             <?php endif; ?>
+            <a href="/ads/views/index.php" class="hover:underline">Inicio</a>
         </div>
     </div>
 </nav>
